@@ -112,7 +112,7 @@ with open('count.json', 'r', encoding='utf-8') as f:
 
     count: dict[int, dict[int, dict[str, int]]] = {
         int(chat): {
-            int(user): j.items() for user, j in i.items()
+            int(user): j for user, j in i.items()
         } for chat, i in counts.items()
     }
 
