@@ -21,3 +21,4 @@ venv.bak/
 # Logs
 *.log
 count.json
+log.*

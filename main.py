@@ -63,7 +63,7 @@ def raises(handler: Callable[..., Any]) -> Callable[..., Any]:
         try:
             return await handler(message)
         except Exception as e:
-            await log(f'[E] {unorid(message)}: "{message.text.replace('\n', '\\n')}"\n{e}\n')
+            await log(f'''[E] {unorid(message)}: "{message.text.replace(chr(10), chr(92)+'n')}"\n{e}\n''')
             if message.text not in ("/catgif", "/catgif@acemanybot"):
                 await message.reply("Сталася критична помилка: \nВiдвал сраки")
             elif e is TelegramBadRequest:
