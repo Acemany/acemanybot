@@ -56,12 +56,12 @@ async def reg(m: Message):
     ) + 1
 
 
-def raises(handler: Callable[..., Any]) -> Callable[..., Any]:
-    "Just a handler"
+def raises(func: Callable[..., Any]) -> Callable[..., Any]:
+    "Exception handler"
 
     async def wrapped(message: Message) -> Any:
         try:
-            return await handler(message)
+            return await func(message)
         except Exception as e:
             await log(f'''[E] {unorid(message)}: "{message.text.replace(chr(10), chr(92)+'n')}"\n{e}\n''')
             if message.text not in ("/catgif", "/catgif@acemanybot"):

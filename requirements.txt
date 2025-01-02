@@ -3,3 +3,4 @@ aiogram>=3.16.0
 python-dotenv>=1.0.1
 requests>=2.32.3
 PySocks>=1.7.1
+click>=8.1.7
