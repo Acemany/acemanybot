@@ -107,14 +107,18 @@ def separate_every(s: str, n: float) -> Generator[str, None, None]:
             for i in range(int(1+(len(s)-1)/n)))
 
 
-with open('count.json', 'r', encoding='utf-8') as f:
-    counts = load(f)
+try:
+    with open('count.json', 'r', encoding='utf-8') as f:
+        counts = load(f)
 
-    count: dict[int, dict[int, dict[str, int]]] = {
-        int(chat): {
-            int(user): j for user, j in i.items()
-        } for chat, i in counts.items()
-    }
+        count: dict[int, dict[int, dict[str, int]]] = {
+            int(chat): {
+                int(user): j for user, j in i.items()
+            } for chat, i in counts.items()
+        }
+except (JSONDecodeError, FileNotFoundError):
+    with open('count.json', 'w', encoding='utf-8') as f:
+        f.write('{}')
 
 
 secrets: dict[str, str] = dotenv_values('.env')  # type: ignore
