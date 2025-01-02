@@ -73,18 +73,20 @@ def raises(handler: Callable[..., Any]) -> Callable[..., Any]:
     return wrapped
 
 
-async def get(url: str) -> dict[str, object]:
+async def get(url: str) -> dict[str, object] | list[Any]:
     "Wrapper around `requests.get`"
 
     try:
         if url[4] == "s":
             url = url[:4] + url[5:]
-        return r_get(url,
-                     proxies={'http': 'socks5://0.0.0.0:1080',
-                              'https': 'socks5://0.0.0.0:1080'},
-                     #          verify=False,
-                     timeout=10,
-                     ).json()
+        response = r_get(
+            url,
+            proxies={'http': 'socks5://0.0.0.0:1080',
+                     'https': 'socks5://0.0.0.0:1080'},
+            # verify=False,
+            timeout=10,
+        )
+        return response.json() if response.text else []
     except JSONDecodeError as e:
         print(url)
         resp = r_get(url, timeout=10)
@@ -95,7 +97,7 @@ async def get(url: str) -> dict[str, object]:
 def parse_args(s: str) -> list[str]:
     "Returns args for command, like `\"/safe arg0 arg1 arg2\"` -> [arg0, arg1, arg2]"
 
-    return s
+    return s.split(' ')[1:] if ' ' in s else []
 
 
 def separate_every(s: str, n: float) -> Generator[str, None, None]:
@@ -119,6 +121,7 @@ try:
 except (JSONDecodeError, FileNotFoundError):
     with open('count.json', 'w', encoding='utf-8') as f:
         f.write('{}')
+        count = dict[int, dict[int, dict[str, int]]]()
 
 
 secrets: dict[str, str] = dotenv_values('.env')  # type: ignore
@@ -285,13 +288,13 @@ async def safe(m: Message):
     limit: int = args[0] if len(args) > 0 and args[0].isdigit() else 1
     pid: int = args[-1] if len(args) > 1 and args[0].isdigit() and args[-1].isdigit() else 0
     tags: str = ('&tags='+'%20'.join(
-        parse_args(m.text)[int(args[0].isdigit()):
-                           len(parse_args(m.text))-int(len(args) > 1 and args[-1].isdigit())
-                           ])) if " " in m.text else ""
+        args[int(args[0].isdigit()):
+             len(args)-int(len(args) > 1 and args[-1].isdigit())
+             ])) if " " in m.text else ""
     prev = f"https://safebooru.org/index.php?page=dapi&s=post&q=index&limit={limit}&json=1{tags}&pid={pid}"
 
     urls = await get(prev)
-    if urls is None:
+    if len(urls) == 0:
         await m.reply('Не нашла ничего подходящего(')
         return
 
