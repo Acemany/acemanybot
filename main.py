@@ -16,6 +16,8 @@ from requests import get as r_get
 from dotenv import dotenv_values
 
 
+# region HELPFUL FUNCTIONS
+
 async def log(m: str):
     "Save something that will possibly helpful when error or something happens"
 
@@ -56,6 +58,21 @@ async def reg(m: Message):
     ) + 1
 
 
+def parse_args(s: str) -> list[str]:
+    "Returns args for command, like `\"/safe arg0 arg1 arg2\"` -> [arg0, arg1, arg2]"
+
+    return s.split(' ')[1:] if ' ' in s else []
+
+
+def separate_every(s: str, n: float) -> Generator[str, None, None]:
+    "Separates string `s` every `n` charscters"
+
+    if n == 0:
+        raise ValueError('Separate by every 0 symbols?')
+    return (s[n*i:n*(i+1)]
+            for i in range(int(1+(len(s)-1)/n)))
+
+
 def raises(func: Callable[..., Any]) -> Callable[..., Any]:
     "Exception handler"
 
@@ -94,20 +111,7 @@ async def get(url: str) -> dict[str, object] | list[Any]:
         raise e
 
 
-def parse_args(s: str) -> list[str]:
-    "Returns args for command, like `\"/safe arg0 arg1 arg2\"` -> [arg0, arg1, arg2]"
-
-    return s.split(' ')[1:] if ' ' in s else []
-
-
-def separate_every(s: str, n: float) -> Generator[str, None, None]:
-    "Separates string `s` every `n` charscters"
-
-    if n == 0:
-        raise ValueError('Separate by every 0 symbols?')
-    return (s[n*i:n*(i+1)]
-            for i in range(int(1+(len(s)-1)/n)))
-
+# endregion
 
 try:
     with open('count.json', 'r', encoding='utf-8') as f:
@@ -144,6 +148,8 @@ tagsdict = {
     "medium_breasts": 54, "small_breasts": 55, "flat_chest": 56, "furry": 57,
 }
 
+
+# region COMMANDS
 
 @dp.message(Command('start'))
 async def start(message: Message):
@@ -364,6 +370,9 @@ async def explicit(m: Message):
     except Exception as e:
         print(*pics)
         raise e
+
+
+# endregion
 
 aiorun(dp.start_polling(bot))
 
