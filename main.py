@@ -90,6 +90,50 @@ def raises(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapped
 
 
+# endregion
+# region EVIL MAGIC AND DECORATORS
+
+def api_request_wrapper(taggable: bool, has_pages: bool, limit: int = 10) -> Callable[..., Callable[..., Any]]:
+    """
+    Decorator that parses args that... okay this just works
+    `taggable` - does API support tags
+    `has_pages` - does api support pages
+    `limit` - maximum images per request
+    """
+
+    def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
+        "No questions, please"
+
+        async def wrapped(message: Message) -> Any:
+            await reg(message)
+
+            args = parse_args(message.text)
+
+            lim: int = int(args[0]) if len(args) > 0 and args[0].isdigit() else 1
+            if lim > limit:
+                lim = limit
+                await message.reply(f'Я не выдам больше {limit} картинок')
+            if lim <= 0:
+                await message.reply('Ты серьёзно?')
+                return
+
+            if taggable:
+                tags: str = args[int(args[0].isdigit()):
+                                 len(args)-int(len(args) > 1 and args[-1].isdigit())
+                                 ]
+                if has_pages:
+                    pid: int = int(args[-1]) if len(args) > 1 and args[0].isdigit() and args[-1].isdigit() else 0
+                    if pid < 0:
+                        await message.reply('Давай не лезть в антивселенную, только положительные номера страниц')
+                        return
+
+                    return await func(message, lim, tags, pid)
+                return await func(message, lim, tags)
+            return await func(message, lim)
+        return wrapped
+    return wrapper
+
+
 async def get(url: str) -> dict[str, object] | list[Any]:
     "Wrapper around `requests.get`"
 
@@ -261,13 +305,10 @@ async def fox(m: Message):
 
 @dp.message(Command('neko'))
 @raises
-async def neko(m: Message):
+@api_request_wrapper(False, False)
+async def neko(m: Message, lim: int):
     "Neko picture"
 
-    await reg(m)
-
-    args = parse_args(m.text)
-    lim: int = args[0] if len(args) > 0 and args[0].isdigit() else 1
     urls = (await get(f'https://nekos.best/api/v2/neko?amount={lim}'))["results"]
 
     try:
@@ -282,24 +323,16 @@ async def neko(m: Message):
 
 @dp.message(Command('safe'))
 @raises
-async def safe(m: Message):
+@api_request_wrapper(True, True)
+async def safe(m: Message, lim: int, tags_: list[str], pid: int):
     """
     Picture from safebooru
     `/safe count tag1 tag2 page`
     """
 
-    await reg(m)
+    tags: str = ('&tags='+'%20'.join(tags_)) if tags_ else ""
+    urls = await get(f"https://safebooru.org/index.php?page=dapi&s=post&q=index&limit={lim}&json=1{tags}&pid={pid}")
 
-    args = parse_args(m.text)
-    limit: int = args[0] if len(args) > 0 and args[0].isdigit() else 1
-    pid: int = args[-1] if len(args) > 1 and args[0].isdigit() and args[-1].isdigit() else 0
-    tags: str = ('&tags='+'%20'.join(
-        args[int(args[0].isdigit()):
-             len(args)-int(len(args) > 1 and args[-1].isdigit())
-             ])) if " " in m.text else ""
-    prev = f"https://safebooru.org/index.php?page=dapi&s=post&q=index&limit={limit}&json=1{tags}&pid={pid}"
-
-    urls = await get(prev)
     if len(urls) == 0:
         await m.reply('Не нашла ничего подходящего(')
         return
@@ -322,13 +355,11 @@ async def safe(m: Message):
 
 @dp.message(Command('girl'))
 @raises
-async def girl(m: Message):
-    "5 pictures from nekosapi(SFW)"
+@api_request_wrapper(True, False)
+async def girl(m: Message, lim: int, tags_: list[str]):
+    "Pictures from nekosapi(SFW)"
 
-    await reg(m)
-
-    tags: str = "".join(f'&tag={tagsdict[tag]}' for tag in parse_args(m.text))
-    lim: int = 5
+    tags: str = "".join(f'&tag={tagsdict[tag]}' for tag in tags_)
     urls = (i["image_url"] for i in (await get(f'https://api.nekosapi.com/v3/images/random?rating=safe{tags}&limit={lim}'))["items"])
 
     media_group = MediaGroupBuilder()
@@ -344,20 +375,19 @@ async def girl(m: Message):
 
 @dp.message(Command('girlx'))
 @raises
-async def explicit(m: Message):
+@api_request_wrapper(True, False)
+async def explicit(m: Message, lim: int, tags_: list[str]):
     """
     NSFW pictures
     `/girlx count tag1 tag2`
     """
 
-    await reg(m)
-
     if m.chat.id not in miha:
         print('Nonadmin tried to what:', m.from_user.id)
         return
 
-    tags: str = "".join(f'&tag={tagsdict[tag]}' for tag in parse_args(m.text))
-    lim: int = 5
+    tags: str = "".join(f'&tag={tagsdict[tag]}' for tag in tags_)
+
     pics = (await get(f'https://api.nekosapi.com/v3/images/random?rating=explicit{tags}&limit={lim}'))["items"]
     caption: str = "\n".join(', '.join(j["name"] for j in i["tags"]) for i in pics)
 
