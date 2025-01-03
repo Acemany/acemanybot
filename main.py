@@ -213,6 +213,7 @@ async def help_list(message: Message):
                         '/dog - пёсель\n'
                         '/fox - лись\n'
                         '/neko - кошкодевочка\n'
+                        '/kits - лисодевочка\n'
                         '/girl - оняме девочка\n'
                         '/safe - SFW картиночки, с промптом\n'
                         '/help - Этот список')
@@ -310,6 +311,24 @@ async def neko(m: Message, lim: int):
     "Neko picture"
 
     urls = (await get(f'https://nekos.best/api/v2/neko?amount={lim}'))["results"]
+
+    try:
+        media_group = MediaGroupBuilder()
+        for i in urls:
+            media_group.add_photo(i["url"])
+        await m.answer_media_group(media_group.build())
+    except Exception as e:
+        print(urls)
+        raise e
+
+
+@dp.message(Command('kits'))
+@raises
+@api_request_wrapper(False, False)
+async def kits(m: Message, lim: int):
+    "Kitsune picture"
+
+    urls = (await get(f'https://nekos.best/api/v2/kitsune?amount={lim}'))["results"]
 
     try:
         media_group = MediaGroupBuilder()
