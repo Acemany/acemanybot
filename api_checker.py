@@ -16,7 +16,7 @@ def main():
         "RandomFox": "http://randomfox.ca/floof",
         "Nekos.best": "http://nekos.best/api/v2/endpoints",
         "Safebooru": "http://safebooru.org/index.php?page=dapi&s=post&q=index&json=1&limit=1",
-        "NekosApi": "http://api.nekosapi.com/v3/images/random?limit=1",
+        "NekosApi": "http://api.nekosapi.com/v4/images/random?limit=1",
     }
 
     for name, lnk in apis.items():

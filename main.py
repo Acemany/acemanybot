@@ -120,7 +120,7 @@ def api_request_wrapper(taggable: bool, has_pages: bool, limit: int = 10) -> Cal
             if taggable:
                 tags: str = args[int(args[0].isdigit()):
                                  len(args)-int(len(args) > 1 and args[-1].isdigit())
-                                 ]
+                                 ] if len(args) > 0 else []
                 if has_pages:
                     pid: int = int(args[-1]) if len(args) > 1 and args[0].isdigit() and args[-1].isdigit() else 0
                     if pid < 0:
@@ -376,19 +376,26 @@ async def safe(m: Message, lim: int, tags_: list[str], pid: int):
 @raises
 @api_request_wrapper(True, False)
 async def girl(m: Message, lim: int, tags_: list[str]):
-    "Pictures from nekosapi(SFW)"
+    """
+    Pictures from nekosapi(SFW)
+    `/girlx count tag1 tag2`
+    """
 
-    tags: str = "".join(f'&tag={tagsdict[tag]}' for tag in tags_)
-    urls = (i["image_url"] for i in (await get(f'https://api.nekosapi.com/v3/images/random?rating=safe{tags}&limit={lim}'))["items"])
+    tags: str = ("&tags=" + ",".join(tags_)) if tags_ else ""
+    pics = await get(f'https://api.nekosapi.com/v4/images/random?rating=safe{tags}&limit={lim}')
+
+    if len(pics) == 0:
+        await m.reply('Не нашла ничего подходящего(')
+        return
 
     media_group = MediaGroupBuilder()
-    for i in urls:
-        media_group.add_photo(i)
+    for i in pics:
+        media_group.add_photo(i["url"])
 
     try:
         await m.answer_media_group(media_group.build())
     except Exception as e:
-        print(*urls)
+        print(*pics)
         raise e
 
 
@@ -405,14 +412,18 @@ async def explicit(m: Message, lim: int, tags_: list[str]):
         print('Nonadmin tried to what:', m.from_user.id)
         return
 
-    tags: str = "".join(f'&tag={tagsdict[tag]}' for tag in tags_)
+    tags: str = ("&tags=" + ",".join(tags_)) if tags_ else ""
 
-    pics = (await get(f'https://api.nekosapi.com/v3/images/random?rating=explicit{tags}&limit={lim}'))["items"]
-    caption: str = "\n".join(', '.join(j["name"] for j in i["tags"]) for i in pics)
+    pics = await get(f'https://api.nekosapi.com/v4/images/random?rating=explicit{tags}&limit={lim}')
+    caption: str = "\n".join(', '.join(i["tags"]) for i in pics)
+
+    if len(pics) == 0:
+        await m.reply('Не нашла ничего подходящего(')
+        return
 
     media_group = MediaGroupBuilder(caption=caption)
     for i in pics:
-        media_group.add_photo(i["image_url"])
+        media_group.add_photo(i["url"])
 
     try:
         await m.answer_media_group(media_group.build())
